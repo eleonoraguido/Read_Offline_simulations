@@ -1,0 +1,16 @@
+# Configuration file for program
+
+# Input path
+input_path = /data/auger8/SDPhoton_v4r0p2/CORSIKA77420/EPOS
+
+# Output path
+output_path = ./
+
+# Particle type
+particle = proton
+
+# Minimum energy
+Ene_min = 18.9
+
+# Maximum energy
+Ene_max = 19.0

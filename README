@@ -1,11 +1,16 @@
 This program reads Auger Offline simulations and creates reduced output files .root, storing only the variables that are used in the CNN analysis on SD signal traces.
 
-Main source file is extract.cc
+Main source file is: extract.cc
+Configuration file: config.txt
+    -input path
+    -output path
+    -type of particle (options: proton, photon, oxygen, iron)
+    -minimum and maximum MC energy
 
 To run the script:
-source ../ADST_r30689_modified.sh
+source ../ADST_v3r99p3.sh
 make
-./extract <mass_name>
+./extract 
 
 
 

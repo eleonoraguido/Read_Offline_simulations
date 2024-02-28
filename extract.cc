@@ -7,6 +7,7 @@
 #include <filesystem>
 #include <dirent.h>
 
+
 #include <RecEvent.h>
 #include <RecEventFile.h>
 #include <DetectorGeometry.h>
@@ -40,18 +41,26 @@ int nstat = 3; //it will be changed for each event (maximum is nstat_max)
 //                   MAIN
 //*******************************************
 
-int main(int argc, char* argv[]) {
-    // Check if a single argument (mass name) is provided
-    if (argc != 2) {
-        cerr << "Error. Usage example: " << argv[0] << " <particle_name>" << endl;
-        return 1;
-    }
+int main() {
 
-    string particleName = argv[1];
-    string commonPath = "/data/auger8/SDPhoton_v4r0p2/CORSIKA77420/EPOS";
+    std::unordered_map<std::string, std::string> config = parse_config_file("config.txt");
+
+    // Access configuration values
+    std::string input_path = config["input_path"];
+    std::string output_path = config["output_path"];
+    std::string particleName = config["particle"];
+    double ene_min = std::stod(config["Ene_min"]);
+    double ene_max = std::stod(config["Ene_max"]);
+
+    // Use the configuration values as needed
+    std::cout << "Input path: " << input_path << std::endl;
+    std::cout << "Output path: " << output_path << std::endl;
+    std::cout << "Particle: " << particleName << std::endl;
+    std::cout << "Minimum energy: " << ene_min << std::endl;
+    std::cout << "Maximum energy: " << ene_max << std::endl;
 
     // Read root files for the specified particle and create merged tree
-    ReadRootFiles(commonPath, particleName);
+    ReadRootFiles(input_path, particleName, ene_min, ene_max);
 
     return 0;
 }

@@ -29,7 +29,13 @@ using namespace std;
 
 double begin_t;
 
-void ReadRootFiles(const string& commonPath, const string& particleName) {
+// Function to check if an energy bin intersects with the given range
+bool intersects(double min_range, double max_range, double bin_min, double bin_max) {
+    return (bin_max >= min_range) && (bin_min <= max_range);
+}
+
+//Read all the root files in the commonPath
+void ReadRootFiles(const string& commonPath, const string& particleName, double ene_min, double ene_max) {
     // Create a single output file for the particle
     string outputFileName = "./" + particleName + "_output.root";
     TFile* outputFile = TFile::Open(outputFileName.c_str(), "RECREATE");
@@ -83,6 +89,28 @@ void ReadRootFiles(const string& commonPath, const string& particleName) {
     struct dirent* entry;
     while ((entry = readdir(dir)) != nullptr) {
         string energyBinPath = commonPath + "/" + entry->d_name;
+        string energy_bin = entry->d_name;
+
+        //**************** here I am selecting only the files containing the energy range I am interested in
+        // Parse the energy bin boundaries
+        std::istringstream bin_iss(energy_bin);
+        double bin_min, bin_max;
+        char separator;
+        if (bin_iss >> bin_min >> separator >> bin_max) {
+            // Check if the energy bin intersects with the range
+            if (!intersects(ene_min, ene_max, bin_min, bin_max)) {
+                // Skip this bin if it doesn't intersect
+                continue;
+            }
+            // Process the bin here
+            std::cout << "Processing energy bin: " << energy_bin << std::endl;
+        }
+        else{
+            cerr << "Warning: Skipping invalid energy bin format: " << energy_bin << std::endl;
+            continue;
+        }
+        //*************** end of check of the energy range
+
         // Check if entry is a directory and skip "." and ".."
 
         if (entry->d_type == DT_DIR && string(entry->d_name) != "." && string(entry->d_name) != "..") {
@@ -123,18 +151,30 @@ void ReadRootFiles(const string& commonPath, const string& particleName) {
     {        
         counter++;
 
+        ESd = theRecEvent->GetSDEvent().GetSdRecShower().GetEnergy();
+        EMC = theRecEvent->GetGenShower().GetEnergy();
+        Nstat_candidate = theRecEvent->GetSDEvent().GetNumberOfCandidates();
+        if(log10(EMC) < ene_min || log10(EMC) > ene_max) continue;
+
         cout << endl << "=====================" << endl;
         cout << endl << "Reading event number: " << counter << " of " << dataFile.GetNEvents() << endl;
 
+        nstat = nstat_max;
+        if(Nstat_candidate < 3){
+            cout<<"Not enough candidate stations -> event rejected"<<endl;
+            continue;
+        }
+        if(ESd == 0){
+            cout<<"No reconstruction -> event rejected"<<endl;
+            continue;
+        }
+        if(Nstat_candidate < nstat_max) nstat = Nstat_candidate;
+        
         //if(counter > 10) break;
         
         SDId = theRecEvent->GetSDEvent().GetEventId();
         cout << "  SDId:         " << SDId << endl;  
-        if(SDId != 800230108) continue;
-
-        Nstat_candidate = theRecEvent->GetSDEvent().GetNumberOfCandidates();
         cout << "  Nstat_cand    " << Nstat_candidate << endl;
-        nstat = nstat_max;
 
         Theta = theRecEvent->GetSDEvent().GetSdRecShower().GetZenith();
         Theta_MC = theRecEvent->GetGenShower().GetZenith();
@@ -150,23 +190,11 @@ void ReadRootFiles(const string& commonPath, const string& particleName) {
         axis_SD = theRecEvent->GetSDEvent().GetSdRecShower().GetAxisCoreCS(); 
         delta_axis = axis_MC.Angle(axis_SD); 
         cout<<"Deviation in recostruncted axis: "<<delta_axis<<endl;
-             
-        ESd = theRecEvent->GetSDEvent().GetSdRecShower().GetEnergy();
+            
         cout << "  ESd:          " << ESd << endl;      
-        EMC = theRecEvent->GetGenShower().GetEnergy();
         cout << "  EMC:          " << EMC << endl;
         Shsize = theRecEvent->GetSDEvent().GetSdRecShower().GetLDF().GetShowerSize();
         cout<< "  S1000:         " << Shsize << endl;
-
-        if(Nstat_candidate < 3){
-            cout<<"Not enough candidate stations -> event rejected"<<endl;
-            continue;
-        }
-        if(ESd == 0){
-            cout<<"No reconstruction -> event rejected"<<endl;
-            continue;
-        }
-        if(Nstat_candidate < nstat_max) nstat = Nstat_candidate;
 
 
         // Call the function to process event data
