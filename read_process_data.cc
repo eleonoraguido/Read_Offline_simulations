@@ -126,10 +126,16 @@ void ReadRootFiles(const string& commonPath, const string& particleName) {
         cout << endl << "=====================" << endl;
         cout << endl << "Reading event number: " << counter << " of " << dataFile.GetNEvents() << endl;
 
-        if(counter > 10) break;
-
+        //if(counter > 10) break;
+        
         SDId = theRecEvent->GetSDEvent().GetEventId();
         cout << "  SDId:         " << SDId << endl;  
+        if(SDId != 800230108) continue;
+
+        Nstat_candidate = theRecEvent->GetSDEvent().GetNumberOfCandidates();
+        cout << "  Nstat_cand    " << Nstat_candidate << endl;
+        nstat = nstat_max;
+
         Theta = theRecEvent->GetSDEvent().GetSdRecShower().GetZenith();
         Theta_MC = theRecEvent->GetGenShower().GetZenith();
         cout << "  Theta:        " << Theta*180./TMath::Pi() << endl; 
@@ -152,15 +158,16 @@ void ReadRootFiles(const string& commonPath, const string& particleName) {
         Shsize = theRecEvent->GetSDEvent().GetSdRecShower().GetLDF().GetShowerSize();
         cout<< "  S1000:         " << Shsize << endl;
 
-        Nstat_candidate = theRecEvent->GetSDEvent().GetNumberOfCandidates();
-        cout << "  Nstat_cand    " << Nstat_candidate << endl;
-        nstat = nstat_max;
-        if(Nstat_candidate < nstat_max) nstat = Nstat_candidate;
-
         if(Nstat_candidate < 3){
             cout<<"Not enough candidate stations -> event rejected"<<endl;
             continue;
         }
+        if(ESd == 0){
+            cout<<"No reconstruction -> event rejected"<<endl;
+            continue;
+        }
+        if(Nstat_candidate < nstat_max) nstat = Nstat_candidate;
+
 
         // Call the function to process event data
         EventDataStations eventDataStations = ProcessEventData(theRecEvent);
