@@ -1,3 +1,5 @@
+This program reads Auger Offline simulations and creates reduced output files .root, storing only the variables that are used in the CNN analysis on SD signal traces.
+
 Main source file is extract.cc
 
 To run the script:
