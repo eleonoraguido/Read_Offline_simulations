@@ -60,7 +60,7 @@ int main() {
     std::cout << "Maximum energy: " << ene_max << std::endl;
 
     // Read root files for the specified particle and create merged tree
-    ReadRootFiles(input_path, particleName, ene_min, ene_max);
+    ReadRootFiles(input_path, output_path, particleName, ene_min, ene_max);
 
     return 0;
 }

@@ -35,9 +35,9 @@ bool intersects(double min_range, double max_range, double bin_min, double bin_m
 }
 
 //Read all the root files in the commonPath
-void ReadRootFiles(const string& commonPath, const string& particleName, double ene_min, double ene_max) {
+void ReadRootFiles(const string& commonPath, const std::string& output_dir, const string& particleName, double ene_min, double ene_max) {
     // Create a single output file for the particle
-    string outputFileName = "./" + particleName + "_output.root";
+    string outputFileName = output_dir + particleName + "_output.root";
     TFile* outputFile = TFile::Open(outputFileName.c_str(), "RECREATE");
     if (!outputFile || outputFile->IsZombie()) {
         cerr << "Error creating output file: " << outputFileName << endl;

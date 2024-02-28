@@ -4,13 +4,13 @@
 input_path = /data/auger8/SDPhoton_v4r0p2/CORSIKA77420/EPOS
 
 # Output path
-output_path = ./
+output_path = ./output_files/
 
 # Particle type
-particle = proton
+particle = oxygen
 
 # Minimum energy
-Ene_min = 18.9
+Ene_min = 18.5
 
 # Maximum energy
-Ene_max = 19.0
+Ene_max = 19.5

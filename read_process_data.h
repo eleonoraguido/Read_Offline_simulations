@@ -9,7 +9,7 @@ struct EventDataStations {
 
 bool intersects(double min_range, double max_range, double bin_min, double bin_max); 
 
-void ReadRootFiles(const std::string& commonPath, const std::string& particleName, double ene_min, double ene_max);
+void ReadRootFiles(const std::string& commonPath, const std::string& output_dir, const std::string& particleName, double ene_min, double ene_max);
 EventDataStations ProcessEventData(RecEvent* theRecEvent);
 
 #endif
