@@ -5,6 +5,8 @@
 #include <fstream>
 #include <filesystem>
 #include <dirent.h>
+#include <chrono>
+#include <thread>
 
 #include <vector>  
 #include <RecEvent.h>
@@ -28,6 +30,20 @@
 using namespace std; 
 
 double begin_t;
+
+// Function to periodically save data
+void PeriodicSave(TTree* tree, TFile* file, const std::chrono::seconds& interval) {
+    while (true) {
+        // Write the tree to the output file
+        file->cd();  // Make sure we are writing to the file
+        tree->Write(0, TObject::kOverwrite);  // Overwrite the existing tree
+
+        // Sleep for the specified interval
+        std::this_thread::sleep_for(interval);
+    }
+}
+
+
 
 // Function to check if an energy bin intersects with the given range
 bool intersects(double min_range, double max_range, double bin_min, double bin_max) {
@@ -138,85 +154,98 @@ void ReadRootFiles(const string& commonPath, const std::string& output_dir, cons
 
     closedir(dir);
 
+    // Create a thread for periodic saving
+    std::thread saveThread(PeriodicSave, mergedTree, outputFile, std::chrono::minutes(5));  // Save every 5 minutes
+
     // Process data and get event data
-    RecEventFile dataFile(dataFileNames);
-
-    RecEvent* theRecEvent = new RecEvent();
-    DetectorGeometry theGeo;
-    dataFile.SetBuffers(&theRecEvent);
-    dataFile.ReadDetectorGeometry(theGeo);
-
-    int counter = 0;
-    while (dataFile.ReadNextEvent() == RecEventFile::eSuccess)
-    {        
-        counter++;
-
-        ESd = theRecEvent->GetSDEvent().GetSdRecShower().GetEnergy();
-        EMC = theRecEvent->GetGenShower().GetEnergy();
-        Nstat_candidate = theRecEvent->GetSDEvent().GetNumberOfCandidates();
-        if(log10(EMC) < ene_min || log10(EMC) > ene_max) continue;
-
-        cout << endl << "=====================" << endl;
-        cout << endl << "Reading event number: " << counter << " of " << dataFile.GetNEvents() << endl;
-
-        nstat = nstat_max;
-        if(Nstat_candidate < 3){
-            cout<<"Not enough candidate stations -> event rejected"<<endl;
-            continue;
-        }
-        if(ESd == 0){
-            cout<<"No reconstruction -> event rejected"<<endl;
-            continue;
-        }
-        if(Nstat_candidate < nstat_max) nstat = Nstat_candidate;
-        
-        //if(counter > 10) break;
-        
-        SDId = theRecEvent->GetSDEvent().GetEventId();
-        cout << "  SDId:         " << SDId << endl;  
-        cout << "  Nstat_cand    " << Nstat_candidate << endl;
-
-        Theta = theRecEvent->GetSDEvent().GetSdRecShower().GetZenith();
-        Theta_MC = theRecEvent->GetGenShower().GetZenith();
-        cout << "  Theta:        " << Theta*180./TMath::Pi() << endl; 
-        
-        Phi = theRecEvent->GetSDEvent().GetSdRecShower().GetAzimuth();
-        Phi_MC = theRecEvent->GetGenShower().GetAzimuth();
-
-        X1 = theRecEvent->GetGenShower().GetX1();
-        cout<<"Depth of first interaction (g cm-2):   "<< X1<<endl;
-
-        axis_MC = theRecEvent->GetGenShower().GetAxisCoreCS(); 
-        axis_SD = theRecEvent->GetSDEvent().GetSdRecShower().GetAxisCoreCS(); 
-        delta_axis = axis_MC.Angle(axis_SD); 
-        cout<<"Deviation in recostruncted axis: "<<delta_axis<<endl;
+    // Iterate over all data files
+    for (const auto& fileName : dataFileNames) {
+        // Open the data file
+        RecEventFile dataFile(fileName);
+        RecEvent* theRecEvent = new RecEvent();
+        DetectorGeometry theGeo;
+        dataFile.SetBuffers(&theRecEvent);
+        dataFile.ReadDetectorGeometry(theGeo);
+    
+        int counter = 0;
+        while (dataFile.ReadNextEvent() == RecEventFile::eSuccess)
+        {        
             
-        cout << "  ESd:          " << ESd << endl;      
-        cout << "  EMC:          " << EMC << endl;
-        Shsize = theRecEvent->GetSDEvent().GetSdRecShower().GetLDF().GetShowerSize();
-        cout<< "  S1000:         " << Shsize << endl;
+            counter++;
+
+            ESd = theRecEvent->GetSDEvent().GetSdRecShower().GetEnergy();
+            EMC = theRecEvent->GetGenShower().GetEnergy();
+            Nstat_candidate = theRecEvent->GetSDEvent().GetNumberOfCandidates();
+            if(log10(EMC) < ene_min || log10(EMC) > ene_max) continue;
+
+            cout << endl << "=====================" << endl;
+            cout << endl << "Reading event number: " << counter << " of " << dataFile.GetNEvents() << endl;
+
+            nstat = nstat_max;
+            if(Nstat_candidate < 3){
+                cout<<"Not enough candidate stations -> event rejected"<<endl;
+                continue;
+            }
+            if(ESd == 0){
+                cout<<"No reconstruction -> event rejected"<<endl;
+                continue;
+            }
+            if(Nstat_candidate < nstat_max) nstat = Nstat_candidate;
+            
+            //if(counter > 10) break;
+            
+            SDId = theRecEvent->GetSDEvent().GetEventId();
+            cout << "  SDId:         " << SDId << endl;  
+            cout << "  Nstat_cand    " << Nstat_candidate << endl;
+
+            Theta = theRecEvent->GetSDEvent().GetSdRecShower().GetZenith();
+            Theta_MC = theRecEvent->GetGenShower().GetZenith();
+            cout << "  Theta:        " << Theta*180./TMath::Pi() << endl; 
+            
+            Phi = theRecEvent->GetSDEvent().GetSdRecShower().GetAzimuth();
+            Phi_MC = theRecEvent->GetGenShower().GetAzimuth();
+
+            X1 = theRecEvent->GetGenShower().GetX1();
+            cout<<"Depth of first interaction (g cm-2):   "<< X1<<endl;
+
+            axis_MC = theRecEvent->GetGenShower().GetAxisCoreCS(); 
+            axis_SD = theRecEvent->GetSDEvent().GetSdRecShower().GetAxisCoreCS(); 
+            delta_axis = axis_MC.Angle(axis_SD); 
+            cout<<"Deviation in recostruncted axis: "<<delta_axis<<endl;
+                
+            cout << "  ESd:          " << ESd << endl;      
+            cout << "  EMC:          " << EMC << endl;
+            Shsize = theRecEvent->GetSDEvent().GetSdRecShower().GetLDF().GetShowerSize();
+            cout<< "  S1000:         " << Shsize << endl;
 
 
-        // Call the function to process event data
-        EventDataStations eventDataStations = ProcessEventData(theRecEvent);
+            // Call the function to process event data
+            EventDataStations eventDataStations = ProcessEventData(theRecEvent);
 
-        // Use the processed eventDataStations
-        T0 = eventDataStations.T0;
-        Stot = eventDataStations.Stot;
-        traces_vec = eventDataStations.traces_vec;
-        Dist = eventDataStations.Dist;
-        azimuthSP = eventDataStations.azimuths;
+            // Use the processed eventDataStations
+            T0 = eventDataStations.T0;
+            Stot = eventDataStations.Stot;
+            traces_vec = eventDataStations.traces_vec;
+            Dist = eventDataStations.Dist;
+            azimuthSP = eventDataStations.azimuths;
 
-        //Fill the tree with the data from the current event
-        mergedTree->Fill();
+            /// Fill the tree with the data from the current event
+            mergedTree->Fill();
+        }
+
+        // Close the data file
+        dataFile.Close();
     }
 
     // Write the merged tree to the output file
     mergedTree->Write();
     outputFile->Close();
+
+    // Join the save thread
+    saveThread.join();
+
     
 }
-
 
 
 // Function to process event data and return it in a struct
