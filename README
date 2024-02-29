@@ -2,12 +2,13 @@ This program reads Auger Offline simulations and creates reduced output files .r
 
 Main source file is: extract.cc
 Configuration file: config.txt
-    -input path
-    -output path
-    -type of particle (options: proton, photon, oxygen, iron)
-    -minimum and maximum MC energy
+    The following options can be set:
+        -input path
+        -output path
+        -type of particle (options: proton, photon, oxygen, iron)
+        -minimum and maximum MC energy
 
-To run the script:
+To run the script locally:
 source ../ADST_v3r99p3.sh
 make
 ./extract 

@@ -1,6 +1,9 @@
 #ifndef READ_PROCESS_DATA_H
 #define READ_PROCESS_DATA_H
 
+#include <chrono>
+#include <thread>
+
 //Struch to store the information related to the three stations, for each event
 struct EventDataStations {
     std::vector<double> T0, Dist, Stot, azimuths;
@@ -8,7 +11,7 @@ struct EventDataStations {
 };
 
 //Function to periodically save data
-void PeriodicSave(TTree* tree, TFile* file, const std::chrono::seconds& interval) {
+void PeriodicSave(TTree* tree, TFile* file, const std::chrono::seconds& interval);
 
 //Function to check if an energy bin intersects with the given range
 //It is used to check which directory will be read, depending on the energy range written in their name

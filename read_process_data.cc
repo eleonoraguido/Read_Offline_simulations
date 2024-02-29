@@ -105,31 +105,27 @@ void ReadRootFiles(const string& commonPath, const std::string& output_dir, cons
     struct dirent* entry;
     while ((entry = readdir(dir)) != nullptr) {
         string energyBinPath = commonPath + "/" + entry->d_name;
-        string energy_bin = entry->d_name;
-
-        //**************** here I am selecting only the files containing the energy range I am interested in
-        // Parse the energy bin boundaries
-        std::istringstream bin_iss(energy_bin);
-        double bin_min, bin_max;
-        char separator;
-        if (bin_iss >> bin_min >> separator >> bin_max) {
-            // Check if the energy bin intersects with the range
-            if (!intersects(ene_min, ene_max, bin_min, bin_max)) {
-                // Skip this bin if it doesn't intersect
-                continue;
-            }
-            // Process the bin here
-            std::cout << "Processing energy bin: " << energy_bin << std::endl;
-        }
-        else{
-            cerr << "Warning: Skipping invalid energy bin format: " << energy_bin << std::endl;
-            continue;
-        }
-        //*************** end of check of the energy range
 
         // Check if entry is a directory and skip "." and ".."
-
         if (entry->d_type == DT_DIR && string(entry->d_name) != "." && string(entry->d_name) != "..") {
+            // Parse the energy bin boundaries only for non-special directories
+            string energy_bin = entry->d_name;
+            std::istringstream bin_iss(energy_bin);
+            double bin_min, bin_max;
+            char separator;
+            if (bin_iss >> bin_min >> separator >> bin_max) {
+                // Check if the energy bin intersects with the range
+                if (!intersects(ene_min, ene_max, bin_min, bin_max)) {
+                    // Skip this bin if it doesn't intersect
+                    continue;
+                }
+                // Process the bin here
+                std::cout << "Processing energy bin: " << energy_bin << std::endl;
+            } else {
+                cerr << "Warning: Skipping invalid energy bin format: " << energy_bin << std::endl;
+                continue;
+            }
+            
             // Construct the path to the subdirectory corresponding to the particle name
             string subDirPath = energyBinPath + "/" + particleName;
             // Check if the subdirectory exists
@@ -140,45 +136,48 @@ void ReadRootFiles(const string& commonPath, const std::string& output_dir, cons
                 while ((fileEntry = readdir(particleDir)) != nullptr) {
                     string fileName = subDirPath + "/" + fileEntry->d_name;
                     // Check if fileEntry is a regular file and process it
-                    cout<<"Processing file: "<<fileName<<endl;
+                    
                     if (fileEntry->d_type == DT_REG) {
-
+                        cout<<"Selected file: "<<fileName<<endl;
                         dataFileNames.push_back(fileName);
-
                     }
                 }
             }
             closedir(particleDir);
         }
     }
-
     closedir(dir);
-
     // Create a thread for periodic saving
-    std::thread saveThread(PeriodicSave, mergedTree, outputFile, std::chrono::minutes(5));  // Save every 5 minutes
+    //std::thread saveThread(PeriodicSave, mergedTree, outputFile, std::chrono::minutes(5));  // Save every 5 minutes
 
-    // Process data and get event data
+    //************ Process data and get event data
+
+    int fileCounter = 0;
     // Iterate over all data files
     for (const auto& fileName : dataFileNames) {
+        fileCounter++;
+        cout<<"Start loop on files"<<endl;
         // Open the data file
         RecEventFile dataFile(fileName);
         RecEvent* theRecEvent = new RecEvent();
         DetectorGeometry theGeo;
         dataFile.SetBuffers(&theRecEvent);
         dataFile.ReadDetectorGeometry(theGeo);
-    
         int counter = 0;
         while (dataFile.ReadNextEvent() == RecEventFile::eSuccess)
         {        
             
             counter++;
-
+            
             ESd = theRecEvent->GetSDEvent().GetSdRecShower().GetEnergy();
             EMC = theRecEvent->GetGenShower().GetEnergy();
             Nstat_candidate = theRecEvent->GetSDEvent().GetNumberOfCandidates();
-            if(log10(EMC) < ene_min || log10(EMC) > ene_max) continue;
+            // Check energy range condition
+            if (log10(EMC) < ene_min || log10(EMC) > ene_max) continue;
+
 
             cout << endl << "=====================" << endl;
+            cout << "Processing file " << fileName<< ", file " << fileCounter << " out of " << dataFileNames.size() << endl;
             cout << endl << "Reading event number: " << counter << " of " << dataFile.GetNEvents() << endl;
 
             nstat = nstat_max;
@@ -232,9 +231,7 @@ void ReadRootFiles(const string& commonPath, const std::string& output_dir, cons
             /// Fill the tree with the data from the current event
             mergedTree->Fill();
         }
-
-        // Close the data file
-        dataFile.Close();
+        //dataFile.Close();
     }
 
     // Write the merged tree to the output file
@@ -242,8 +239,9 @@ void ReadRootFiles(const string& commonPath, const std::string& output_dir, cons
     outputFile->Close();
 
     // Join the save thread
-    saveThread.join();
+    //saveThread.join();
 
+    return;
     
 }
 
