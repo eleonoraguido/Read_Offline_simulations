@@ -13,5 +13,7 @@ source ../ADST_v3r99p3.sh
 make
 ./extract 
 
+For each input simulation file an output file is created. They can be merged together, for example:
+hadd output_photon.root output_proton_*
 
 
